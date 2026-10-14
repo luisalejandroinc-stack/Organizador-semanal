@@ -16,7 +16,7 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyDfDvsmGWi0kgRVAiAKBJY7jXXr8tYt7yY",
+      apiKey: "AIzaSyDfDvsmGWi0kgRVAIAKBJY7jXXr8tYt7yY",
       authDomain: "bujo-personal.firebaseapp.com",
       projectId: "bujo-personal",
       storageBucket: "bujo-personal.firebasestorage.app",
@@ -493,6 +493,8 @@
     let store = { pages: {} };
     let currentWeekKey = getISOWeekString(new Date());
     let syncTimeout = null;
+    let isLocalSaving = false;
+    let unsubscribeSnapshot = null;
 
     function getISOWeekString(date) {
       const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -553,14 +555,20 @@
 
     window.initCloudSync = function() {
       if (!window.db || !window.currentUser) return;
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+
       const userDocRef = window.doc(window.db, "usuarios", window.currentUser.uid, "datos", "semanas");
 
-      window.onSnapshot(userDocRef, (docSnap) => {
+      unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
+        // Ignorar el eco de nuestra propia escritura para no mover el cursor
+        if (docSnap.metadata.hasPendingWrites || isLocalSaving) return;
+
         if (docSnap.exists()) {
           const cloudData = docSnap.data();
           if (cloudData && cloudData.pages) {
             store.pages = cloudData.pages;
             renderAll();
+            flashSaveIndicator("Sincronizado en la nube");
           }
         }
       });
@@ -572,26 +580,41 @@
         return;
       }
 
+      isLocalSaving = true;
       flashSaveIndicator("Guardando...");
       clearTimeout(syncTimeout);
       syncTimeout = setTimeout(() => {
         if (window.db && window.currentUser) {
           const userDocRef = window.doc(window.db, "usuarios", window.currentUser.uid, "datos", "semanas");
           window.setDoc(userDocRef, { pages: store.pages }, { merge: true })
-            .then(() => flashSaveIndicator("Sincronizado en la nube"))
+            .then(() => {
+              flashSaveIndicator("Sincronizado en la nube");
+              setTimeout(() => { isLocalSaving = false; }, 300);
+            })
             .catch((err) => {
               console.error(err);
+              isLocalSaving = false;
               flashSaveIndicator("Error al sincronizar");
             });
         }
-      }, 500);
+      }, 600);
     }
 
     function renderGoals() {
       const page = getCurrentPage();
       const container = document.getElementById('goals-container');
-      container.innerHTML = '';
 
+      if (container.children.length === page.goals.length) {
+        page.goals.forEach((goalText, idx) => {
+          const input = container.children[idx].querySelector('input');
+          if (input && document.activeElement !== input) {
+            input.value = goalText;
+          }
+        });
+        return;
+      }
+
+      container.innerHTML = '';
       page.goals.forEach((goalText, idx) => {
         const row = document.createElement('div');
         row.className = 'border-b border-zinc-300 flex items-center';
@@ -612,8 +635,27 @@
       const page = getCurrentPage();
       const monday = getMondayFromISOWeek(currentWeekKey);
       const container = document.getElementById('days-container');
-      container.innerHTML = '';
 
+      if (container.children.length === DAY_LETTERS.length) {
+        DAY_LETTERS.forEach((letter, idx) => {
+          const dayDate = new Date(monday);
+          dayDate.setDate(monday.getDate() + idx);
+          const dayNumber = dayDate.getDate();
+          const monthShort = MONTH_NAMES[dayDate.getMonth()].slice(0, 3).toLowerCase();
+
+          const block = container.children[idx];
+          const dateBadge = block.querySelector('.day-date-badge');
+          if (dateBadge) dateBadge.textContent = `${dayNumber} ${monthShort}`;
+
+          const textarea = block.querySelector('textarea');
+          if (textarea && document.activeElement !== textarea) {
+            textarea.value = page.days[idx] || '';
+          }
+        });
+        return;
+      }
+
+      container.innerHTML = '';
       DAY_LETTERS.forEach((letter, idx) => {
         const dayDate = new Date(monday);
         dayDate.setDate(monday.getDate() + idx);
@@ -626,7 +668,7 @@
           <div class="absolute top-0 left-0 w-[24px] h-[24px] bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center select-none z-10">
             ${letter}
           </div>
-          <div class="no-print absolute top-0.5 right-2 text-[10px] font-medium text-zinc-400 select-none pointer-events-none">
+          <div class="day-date-badge no-print absolute top-0.5 right-2 text-[10px] font-medium text-zinc-400 select-none pointer-events-none">
             ${dayNumber} ${monthShort}
           </div>
           <textarea
@@ -734,8 +776,31 @@
     function renderTasks() {
       const page = getCurrentPage();
       const container = document.getElementById('tasks-container');
-      container.innerHTML = '';
 
+      if (container.children.length === page.tasks.length) {
+        page.tasks.forEach((task, idx) => {
+          const row = container.children[idx];
+          const btn = row.querySelector('button');
+          const input = row.querySelector('input');
+
+          if (btn) {
+            btn.className = `w-3.5 h-3.5 rounded-[2px] border border-zinc-400 flex items-center justify-center text-[10px] transition ${
+              task.done ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-transparent hover:border-zinc-700'
+            }`;
+            btn.innerHTML = task.done ? '✓' : '';
+          }
+
+          if (input) {
+            input.className = `bujo-line-input flex-1 ${task.done ? 'line-through text-zinc-400' : ''}`;
+            if (document.activeElement !== input) {
+              input.value = task.text;
+            }
+          }
+        });
+        return;
+      }
+
+      container.innerHTML = '';
       page.tasks.forEach((task, idx) => {
         const row = document.createElement('div');
         row.className = 'border-b border-zinc-300 flex items-center gap-2 group';
@@ -765,8 +830,25 @@
     function renderHabits() {
       const page = getCurrentPage();
       const tbody = document.getElementById('habits-body');
-      tbody.innerHTML = '';
 
+      if (tbody.children.length === page.habits.length) {
+        page.habits.forEach((habit, hIdx) => {
+          const tr = tbody.children[hIdx];
+          const input = tr.querySelector('input');
+          if (input && document.activeElement !== input) {
+            input.value = habit.name;
+          }
+          const cells = tr.querySelectorAll('.habit-day-cell');
+          for (let dIdx = 0; dIdx < 7; dIdx++) {
+            if (cells[dIdx]) {
+              cells[dIdx].className = `habit-day-cell ${habit.checks[dIdx] ? 'checked' : ''}`;
+            }
+          }
+        });
+        return;
+      }
+
+      tbody.innerHTML = '';
       page.habits.forEach((habit, hIdx) => {
         const tr = document.createElement('tr');
         let html = `
