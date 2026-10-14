@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planificador Semanal Minimalista — Bullet Journal Digital</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --grid-size: 24px;
+      --grid-line: #e4e4e7;
+      --ink-black: #18181b;
+      --paper-bg: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: #f1f5f9;
+      color: var(--ink-black);
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Hoja estilo A4 / Cuaderno minimalista */
+    .bujo-sheet {
+      max-width: 1020px;
+      margin: 24px auto 48px auto;
+      background: var(--paper-bg);
+      padding: 44px 48px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.12), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .bujo-sheet {
+        margin: 12px;
+        padding: 20px 16px;
+      }
+    }
+
+    /* Títulos con espaciado ancho idénticos a la imagen */
+    .bujo-section-title {
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: #18181b;
+      margin-bottom: 6px;
+      user-select: none;
+    }
+
+    /* Línea negra gruesa característica de cada bloque */
+    .thick-rule {
+      border-top: 2.5px solid #18181b;
+    }
+
+    /* Fondo de cuadrícula milimetrada para días y notas */
+    .grid-paper {
+      background-size: 24px 24px;
+      background-image:
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      border-right: 1px solid var(--grid-line);
+      border-bottom: 1px solid var(--grid-line);
+    }
+
+    /* Textareas transparentes alineadas a la cuadrícula */
+    .bujo-day-textarea {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 0.85rem;
+      line-height: 24px;
+      padding: 0 10px 0 34px;
+      color: #18181b;
+      overflow-y: auto;
+    }
+
+    .bujo-notes-textarea {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 0.85rem;
+      line-height: 24px;
+      padding: 0 8px;
+      color: #18181b;
+    }
+
+    /* Inputs en líneas horizontales (Metas, Tareas, Hábitos) */
+    .bujo-line-input {
+      width: 100%;
+      height: 28px;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 0.84rem;
+      color: #18181b;
+      padding: 0 4px;
+    }
+
+    .bujo-line-input::placeholder,
+    .bujo-day-textarea::placeholder,
+    .bujo-notes-textarea::placeholder {
+      color: #d4d4d8;
+      font-weight: 400;
+    }
+
+    /* Tabla de Meses (T1-T4) */
+    .mes-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.75rem;
+    }
+    .mes-table th {
+      background-color: #9ca3af;
+      color: #ffffff;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      padding: 5px 0;
+      border: 1px solid #9ca3af;
+      text-align: center;
+    }
+    .mes-table td {
+      border: 1px solid #d4d4d8;
+      height: 24px;
+      text-align: center;
+      user-select: none;
+      transition: all 0.12s ease;
+    }
+    .mes-table td.trimestre-label {
+      font-weight: 700;
+      color: #18181b;
+      background-color: #fafafa;
+      cursor: default;
+    }
+    .mes-table td.month-cell {
+      cursor: pointer;
+      color: #27272a;
+    }
+    .mes-table td.month-cell:hover {
+      background-color: #f4f4f5;
+    }
+    .mes-table td.month-cell.active-month {
+      background-color: #18181b;
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    /* Mini Calendario Mensual (6x7) */
+    .mini-cal-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .mini-cal-table th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #18181b;
+      padding-bottom: 4px;
+      text-align: center;
+      border-bottom: 2.5px solid #18181b;
+      user-select: none;
+    }
+    .mini-cal-table td {
+      border: 1px solid #d4d4d8;
+      height: 23px;
+      text-align: center;
+      font-size: 0.7rem;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: background-color 0.1s ease;
+    }
+    .mini-cal-table td:hover {
+      background-color: #f4f4f5;
+    }
+    .mini-cal-table td.other-month {
+      color: #d4d4d8;
+    }
+    .mini-cal-table td.active-week-row {
+      background-color: #f4f4f5;
+      font-weight: 600;
+    }
+    .mini-cal-table td.marked-day {
+      background-color: #18181b !important;
+      color: #ffffff !important;
+      font-weight: 600;
+    }
+    .mini-cal-table td.is-today::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 9999px;
+      background-color: #71717a;
+    }
+    .mini-cal-table td.marked-day.is-today::after {
+      background-color: #ffffff;
+    }
+
+    /* Tabla de Hábitos */
+    .habits-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .habits-table td {
+      height: 28px;
+      border-bottom: 1px solid #d4d4d8;
+    }
+    .habits-table td.habit-day-cell {
+      width: 26px;
+      border-left: 1px solid #d4d4d8;
+      border-right: 1px solid #d4d4d8;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.12s ease;
+    }
+    .habits-table td.habit-day-cell:hover {
+      background-color: #f4f4f5;
+    }
+    .habits-table td.habit-day-cell.checked {
+      background-color: #27272a;
+      color: #ffffff;
+    }
+
+    /* Reglas para impresión limpia idéntica al papel */
+    @media print {
+      body {
+        background: #ffffff;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .bujo-sheet {
+        margin: 0;
+        padding: 12mm 14mm;
+        box-shadow: none;
+        max-width: 100%;
+        width: 100%;
+      }
+      .bujo-line-input::placeholder,
+      .bujo-day-textarea::placeholder,
+      .bujo-notes-textarea::placeholder {
+        color: transparent !important;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="no-print sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-zinc-200 px-4 py-2.5 shadow-sm">
+    <div class="max-w-[1020px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Identidad y estado -->
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 bg-zinc-900 text-white flex items-center justify-center font-bold text-xs tracking-wider rounded">
+          BJ
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold text-zinc-900 leading-none">Bullet Journal Digital</h1>
+          <div class="flex items-center gap-2 mt-1">
+            <span id="save-indicator" class="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Guardado automático
+            </span>
+            <span class="text-zinc-300">|</span>
+            <span id="week-range-badge" class="text-[11px] text-zinc-500 font-medium"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controles de navegación temporal y acciones -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Navegador de Semana -->
+        <div class="flex items-center bg-zinc-100 rounded-md p-0.5 border border-zinc-200">
+          <button onclick="shiftWeek(-1)" title="Semana anterior" class="px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white rounded transition">
+            ←
+          </button>
+          <input
+            type="week"
+            id="week-picker"
+            onchange="onWeekPickerChange(this.value)"
+            class="bg-transparent text-xs font-medium text-zinc-800 px-1.5 py-0.5 outline-none cursor-pointer"
+          />
+          <button onclick="shiftWeek(1)" title="Semana siguiente" class="px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white rounded transition">
+            →
+          </button>
+        </div>
+
+        <button
+          onclick="goToCurrentWeek()"
+          class="px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 transition"
+        >
+          Hoy
+        </button>
+
+        <button
+          onclick="openClearModal()"
+          class="px-2.5 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-md hover:bg-rose-100 transition"
+        >
+          Limpiar página
+        </button>
+
+        <button
+          onclick="window.print()"
+          class="px-3 py-1.5 text-xs font-medium text-white bg-zinc-900 rounded-md hover:bg-zinc-800 transition flex items-center gap-1.5"
+        >
+          <span>Imprimir / PDF</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="bujo-sheet">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-stretch">
+
+      <!-- ==================== COLUMNA IZQUIERDA ==================== -->
+      <div class="flex flex-col justify-between">
+        
+        <!-- SECCIÓN: METAS -->
+        <section class="mb-6">
+          <h2 class="bujo-section-title">M E T A S</h2>
+          <div class="thick-rule"></div>
+          <div id="goals-container" class="flex flex-col">
+            <!-- 4 filas generadas dinámicamente -->
+          </div>
+        </section>
+
+        <!-- SECCIÓN: 7 DÍAS DE LA SEMANA (L, M, M, J, V, S, D) -->
+        <section id="days-container" class="flex flex-col space-y-3.5">
+          <!-- 7 bloques diarios cuadriculados generados dinámicamente -->
+        </section>
+
+      </div>
+
+      <!-- ==================== COLUMNA DERECHA ==================== -->
+      <div class="flex flex-col h-full">
+
+        <!-- FILA SUPERIOR: TABLA MES (T1-T4) + MINI CALENDARIO (L-D) -->
+        <section class="grid grid-cols-12 gap-5 mb-7 items-start">
+          
+          <!-- Tabla MES (5 columnas) -->
+          <div class="col-span-5">
+            <table class="mes-table">
+              <thead>
+                <tr>
+                  <th colspan="4">M E S</th>
+                </tr>
+              </thead>
+              <tbody id="mes-table-body">
+                <!-- T1 a T4 + fila extra generadas por JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mini Calendario Cuadriculado (7 columnas) -->
+          <div class="col-span-7">
+            <table class="mini-cal-table">
+              <thead>
+                <tr>
+                  <th>L</th>
+                  <th>M</th>
+                  <th>M</th>
+                  <th>J</th>
+                  <th>V</th>
+                  <th>S</th>
+                  <th>D</th>
+                </tr>
+              </thead>
+              <tbody id="mini-cal-body">
+                <!-- 6 filas x 7 columnas generadas por JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SECCIÓN: TAREAS -->
+        <section class="mb-7">
+          <h2 class="bujo-section-title">T A R E A S</h2>
+          <div class="thick-rule"></div>
+          <div id="tasks-container" class="flex flex-col">
+            <!-- 6 líneas de tareas con checkbox sutil -->
+          </div>
+        </section>
+
+        <!-- SECCIÓN: HÁBITOS -->
+        <section class="mb-7">
+          <div class="relative flex items-center justify-center mb-1.5">
+            <h2 class="bujo-section-title !mb-0">H Á B I T O S</h2>
+          </div>
+          <div class="thick-rule"></div>
+          <table class="habits-table">
+            <tbody id="habits-body">
+              <!-- 6 filas: nombre del hábito a la izquierda + 7 celdas (L a D) a la derecha -->
+            </tbody>
+          </table>
+          <!-- Guía sutil de iniciales de día bajo la grilla de hábitos (solo pantalla) -->
+          <div class="flex justify-end no-print mt-1 pr-[1px]">
+            <div class="grid grid-cols-7 text-center text-[9px] text-zinc-400 font-medium" style="width: 182px;">
+              <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECCIÓN: NOTAS (Ocupa todo el alto restante de la columna derecha) -->
+        <section class="flex-1 flex flex-col min-h-[384px]">
+          <h2 class="bujo-section-title">N O T A S</h2>
+          <div class="thick-rule"></div>
+          <div class="grid-paper flex-1 border-l border-zinc-200 relative">
+            <textarea
+              id="notes-textarea"
+              class="bujo-notes-textarea absolute inset-0"
+              placeholder="Escribe tus notas, ideas o apuntes de la semana..."
+              oninput="handleNotesInput(this.value)"
+            ></textarea>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+  </main>
+
+  <div id="clear-modal" class="no-print fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+    <div class="bg-white border border-zinc-200 rounded-lg max-w-sm w-full p-5 shadow-xl">
+      <h3 class="text-sm font-semibold text-zinc-900">¿Limpiar esta página semanal?</h3>
+      <p class="text-xs text-zinc-600 mt-1.5 leading-relaxed">
+        Se borrarán las metas, notas diarias, tareas, hábitos y apuntes de la semana seleccionada (<span id="modal-week-label" class="font-medium text-zinc-800"></span>).
+      </p>
+      <div class="flex justify-end gap-2 mt-4">
+        <button
+          onclick="closeClearModal()"
+          class="px-3 py-1.5 text-xs font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-md transition"
+        >
+          Cancelar
+        </button>
+        <button
+          onclick="confirmClearPage()"
+          class="px-3 py-1.5 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-md transition"
+        >
+          Sí, limpiar hoja
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'bujo_digital_planner_v1';
+    const DAY_LETTERS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    const MONTH_NAMES = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    // Estado global que almacena múltiples semanas por clave ISO (ej. "2026-W42")
+    let store = loadStore();
+    let currentWeekKey = getISOWeekString(new Date());
+
+    function loadStore() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : { pages: {} };
+      } catch (e) {
+        return { pages: {} };
+      }
+    }
+
+    function saveStore() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+        flashSaveIndicator();
+      } catch (e) {
+        console.error('Error guardando en localStorage:', e);
+      }
+    }
+
+    function createEmptyPage(defaultMonthIndex) {
+      return {
+        goals: ['', '', '', ''],
+        days: ['', '', '', '', '', '', ''],
+        selectedMonth: typeof defaultMonthIndex === 'number' ? defaultMonthIndex : new Date().getMonth(),
+        extraTrimesterNotes: ['', '', ''],
+        markedCalendarDays: [], // Días resaltados manualmente en el mini calendario "YYYY-MM-DD"
+        tasks: Array.from({ length: 6 }, () => ({ text: '', done: false })),
+        habits: Array.from({ length: 6 }, () => ({
+          name: '',
+          checks: [false, false, false, false, false, false, false]
+        })),
+        notes: ''
+      };
+    }
+
+    function getCurrentPage() {
+      if (!store.pages[currentWeekKey]) {
+        const mondayDate = getMondayFromISOWeek(currentWeekKey);
+        store.pages[currentWeekKey] = createEmptyPage(mondayDate.getMonth());
+      }
+      return store.pages[currentWeekKey];
+    }
+
+    // Convierte un objeto Date a formato "YYYY-Www"
+    function getISOWeekString(date) {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
+
+    // Obtiene el Lunes correspondiente a una cadena "YYYY-Www"
+    function getMondayFromISOWeek(weekStr) {
+      const [yearPart, weekPart] = weekStr.split('-W');
+      const year = parseInt(yearPart, 10);
+      const week = parseInt(weekPart, 10);
+      const simple = new Date(year, 0, 1 + (week - 1) * 7);
+      const dow = simple.getDay();
+      const ISOweekStart = new Date(simple);
+      if (dow <= 4 && dow > 0) {
+        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+      } else if (dow === 0) {
+        ISOweekStart.setDate(simple.getDate() - 6);
+      } else {
+        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+      }
+      return ISOweekStart;
+    }
+
+    function formatDateKey(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function renderGoals() {
+      const page = getCurrentPage();
+      const container = document.getElementById('goals-container');
+      container.innerHTML = '';
+
+      page.goals.forEach((goalText, idx) => {
+        const row = document.createElement('div');
+        row.className = 'border-b border-zinc-300 flex items-center';
+        row.innerHTML = `
+          <input
+            type="text"
+            class="bujo-line-input"
+            value="${escapeHtml(goalText)}"
+            placeholder="Meta ${idx + 1}..."
+            oninput="updateGoal(${idx}, this.value)"
+          />
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderDays() {
+      const page = getCurrentPage();
+      const monday = getMondayFromISOWeek(currentWeekKey);
+      const container = document.getElementById('days-container');
+      container.innerHTML = '';
+
+      DAY_LETTERS.forEach((letter, idx) => {
+        const dayDate = new Date(monday);
+        dayDate.setDate(monday.getDate() + idx);
+        const dayNumber = dayDate.getDate();
+        const monthShort = MONTH_NAMES[dayDate.getMonth()].slice(0, 3).toLowerCase();
+
+        const block = document.createElement('div');
+        block.className = 'thick-rule relative grid-paper border-l border-zinc-200 h-[120px]';
+        block.innerHTML = `
+          <!-- Etiqueta negra en la esquina superior izquierda como en el diseño original -->
+          <div class="absolute top-0 left-0 w-[24px] h-[24px] bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center select-none z-10">
+            ${letter}
+          </div>
+          <!-- Número de fecha sutil en la esquina superior derecha (no invade la estética) -->
+          <div class="no-print absolute top-0.5 right-2 text-[10px] font-medium text-zinc-400 select-none pointer-events-none">
+            ${dayNumber} ${monthShort}
+          </div>
+          <textarea
+            class="bujo-day-textarea"
+            placeholder=""
+            oninput="updateDayText(${idx}, this.value)"
+          >${escapeHtml(page.days[idx])}</textarea>
+        `;
+        container.appendChild(block);
+      });
+    }
+
+    function renderMesTable() {
+      const page = getCurrentPage();
+      const tbody = document.getElementById('mes-table-body');
+      tbody.innerHTML = '';
+
+      const trimesters = [
+        { label: 'T1', months: [0, 1, 2] },
+        { label: 'T2', months: [3, 4, 5] },
+        { label: 'T3', months: [6, 7, 8] },
+        { label: 'T4', months: [9, 10, 11] }
+      ];
+
+      trimesters.forEach(t => {
+        const tr = document.createElement('tr');
+        let html = `<td class="trimestre-label">${t.label}</td>`;
+        t.months.forEach(mIdx => {
+          const isSelected = page.selectedMonth === mIdx;
+          html += `
+            <td
+              class="month-cell ${isSelected ? 'active-month' : ''}"
+              title="${MONTH_NAMES[mIdx]}"
+              onclick="selectMonth(${mIdx})"
+            >
+              ${mIdx + 1}
+            </td>
+          `;
+        });
+        tr.innerHTML = html;
+        tbody.appendChild(tr);
+      });
+
+      // 5ta fila vacía inferior tal cual aparece en la imagen original
+      const extraTr = document.createElement('tr');
+      extraTr.innerHTML = `
+        <td class="trimestre-label"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      `;
+      tbody.appendChild(extraTr);
+    }
+
+    function renderMiniCalendar() {
+      const page = getCurrentPage();
+      const mondayOfSelectedWeek = getMondayFromISOWeek(currentWeekKey);
+      const sundayOfSelectedWeek = new Date(mondayOfSelectedWeek);
+      sundayOfSelectedWeek.setDate(mondayOfSelectedWeek.getDate() + 6);
+
+      const year = mondayOfSelectedWeek.getFullYear();
+      const month = page.selectedMonth;
+
+      const firstDayOfMonth = new Date(year, month, 1);
+      // Convertir Domingo (0) a índice 6, y Lunes (1) a índice 0
+      const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const todayKey = formatDateKey(new Date());
+      const tbody = document.getElementById('mini-cal-body');
+      tbody.innerHTML = '';
+
+      let cellCounter = 0;
+      for (let row = 0; row < 6; row++) {
+        const tr = document.createElement('tr');
+        for (let col = 0; col < 7; col++) {
+          const td = document.createElement('td');
+          const dayNum = cellCounter - startOffset + 1;
+
+          if (dayNum >= 1 && dayNum <= daysInMonth) {
+            const cellDate = new Date(year, month, dayNum);
+            const dateKey = formatDateKey(cellDate);
+            td.textContent = dayNum;
+
+            // Resaltar suavemente si pertenece a la semana activa
+            if (cellDate >= mondayOfSelectedWeek && cellDate <= sundayOfSelectedWeek) {
+              td.classList.add('active-week-row');
+            }
+
+            // Punto indicador si es hoy
+            if (dateKey === todayKey) {
+              td.classList.add('is-today');
+            }
+
+            // Día marcado por el usuario con clic
+            if (page.markedCalendarDays.includes(dateKey)) {
+              td.classList.add('marked-day');
+            }
+
+            td.onclick = () => toggleCalendarDay(dateKey);
+          } else {
+            td.classList.add('other-month');
+          }
+
+          tr.appendChild(td);
+          cellCounter++;
+        }
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderTasks() {
+      const page = getCurrentPage();
+      const container = document.getElementById('tasks-container');
+      container.innerHTML = '';
+
+      page.tasks.forEach((task, idx) => {
+        const row = document.createElement('div');
+        row.className = 'border-b border-zinc-300 flex items-center gap-2 group';
+        row.innerHTML = `
+          <button
+            type="button"
+            onclick="toggleTaskDone(${idx})"
+            class="w-3.5 h-3.5 rounded-[2px] border border-zinc-400 flex items-center justify-center text-[10px] transition ${
+              task.done ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-transparent hover:border-zinc-700'
+            }"
+            title="Marcar tarea completada"
+          >
+            ${task.done ? '✓' : ''}
+          </button>
+          <input
+            type="text"
+            class="bujo-line-input flex-1 ${task.done ? 'line-through text-zinc-400' : ''}"
+            value="${escapeHtml(task.text)}"
+            placeholder="Tarea ${idx + 1}..."
+            oninput="updateTaskText(${idx}, this.value)"
+          />
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderHabits() {
+      const page = getCurrentPage();
+      const tbody = document.getElementById('habits-body');
+      tbody.innerHTML = '';
+
+      page.habits.forEach((habit, hIdx) => {
+        const tr = document.createElement('tr');
+        let html = `
+          <td class="pr-2">
+            <input
+              type="text"
+              class="bujo-line-input"
+              value="${escapeHtml(habit.name)}"
+              placeholder="Hábito ${hIdx + 1}..."
+              oninput="updateHabitName(${hIdx}, this.value)"
+            />
+          </td>
+        `;
+
+        for (let dIdx = 0; dIdx < 7; dIdx++) {
+          const isChecked = habit.checks[dIdx];
+          html += `
+            <td
+              class="habit-day-cell ${isChecked ? 'checked' : ''}"
+              title="${DAY_LETTERS[dIdx]}"
+              onclick="toggleHabitDay(${hIdx}, ${dIdx})"
+            ></td>
+          `;
+        }
+
+        tr.innerHTML = html;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderNotes() {
+      const page = getCurrentPage();
+      const notesEl = document.getElementById('notes-textarea');
+      notesEl.value = page.notes || '';
+    }
+
+    function updateHeaderBadge() {
+      const picker = document.getElementById('week-picker');
+      picker.value = currentWeekKey;
+
+      const monday = getMondayFromISOWeek(currentWeekKey);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      const fmt = (d) => `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 3)}`;
+      const badge = document.getElementById('week-range-badge');
+      badge.textContent = `${fmt(monday)} – ${fmt(sunday)} ${sunday.getFullYear()}`;
+    }
+
+    function updateGoal(idx, val) {
+      const page = getCurrentPage();
+      page.goals[idx] = val;
+      saveStore();
+    }
+
+    function updateDayText(idx, val) {
+      const page = getCurrentPage();
+      page.days[idx] = val;
+      saveStore();
+    }
+
+    function selectMonth(mIdx) {
+      const page = getCurrentPage();
+      page.selectedMonth = mIdx;
+      saveStore();
+      renderMesTable();
+      renderMiniCalendar();
+    }
+
+    function toggleCalendarDay(dateKey) {
+      const page = getCurrentPage();
+      const pos = page.markedCalendarDays.indexOf(dateKey);
+      if (pos === -1) {
+        page.markedCalendarDays.push(dateKey);
+      } else {
+        page.markedCalendarDays.splice(pos, 1);
+      }
+      saveStore();
+      renderMiniCalendar();
+    }
+
+    function updateTaskText(idx, val) {
+      const page = getCurrentPage();
+      page.tasks[idx].text = val;
+      saveStore();
+    }
+
+    function toggleTaskDone(idx) {
+      const page = getCurrentPage();
+      page.tasks[idx].done = !page.tasks[idx].done;
+      saveStore();
+      renderTasks();
+    }
+
+    function updateHabitName(hIdx, val) {
+      const page = getCurrentPage();
+      page.habits[hIdx].name = val;
+      saveStore();
+    }
+
+    function toggleHabitDay(hIdx, dIdx) {
+      const page = getCurrentPage();
+      page.habits[hIdx].checks[dIdx] = !page.habits[hIdx].checks[dIdx];
+      saveStore();
+      renderHabits();
+    }
+
+    function handleNotesInput(val) {
+      const page = getCurrentPage();
+      page.notes = val;
+      saveStore();
+    }
+
+    // Navegación entre semanas
+    function onWeekPickerChange(val) {
+      if (!val) return;
+      currentWeekKey = val;
+      renderAll();
+    }
+
+    function shiftWeek(deltaWeeks) {
+      const monday = getMondayFromISOWeek(currentWeekKey);
+      monday.setDate(monday.getDate() + deltaWeeks * 7);
+      currentWeekKey = getISOWeekString(monday);
+      renderAll();
+    }
+
+    function goToCurrentWeek() {
+      currentWeekKey = getISOWeekString(new Date());
+      const page = getCurrentPage();
+      page.selectedMonth = new Date().getMonth();
+      saveStore();
+      renderAll();
+    }
+
+    // Modal para limpiar hoja actual
+    function openClearModal() {
+      const badgeText = document.getElementById('week-range-badge').textContent;
+      document.getElementById('modal-week-label').textContent = badgeText;
+      const modal = document.getElementById('clear-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeClearModal() {
+      const modal = document.getElementById('clear-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function confirmClearPage() {
+      const monday = getMondayFromISOWeek(currentWeekKey);
+      store.pages[currentWeekKey] = createEmptyPage(monday.getMonth());
+      saveStore();
+      renderAll();
+      closeClearModal();
+    }
+
+    let saveTimeout = null;
+    function flashSaveIndicator() {
+      const el = document.getElementById('save-indicator');
+      if (!el) return;
+      el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Guardando...`;
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Guardado automático`;
+      }, 650);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderAll() {
+      updateHeaderBadge();
+      renderGoals();
+      renderDays();
+      renderMesTable();
+      renderMiniCalendar();
+      renderTasks();
+      renderHabits();
+      renderNotes();
+    }
+
+    window.onload = function () {
+      renderAll();
+    };
+  </script>
+</body>
+</html>
