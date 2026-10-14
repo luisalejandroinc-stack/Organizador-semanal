@@ -13,6 +13,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDfDvsmGWi0kgRVAlAKBJY7jXXr8tYt7yY",
@@ -26,12 +27,54 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
     window.db = db;
     window.doc = doc;
     window.onSnapshot = onSnapshot;
     window.setDoc = setDoc;
-    window.initCloudSync();
+    window.auth = auth;
+
+    window.loginWithGoogle = () => {
+      signInWithPopup(auth, provider).catch(err => alert("Error al iniciar sesión: " + err.message));
+    };
+
+    window.logoutGoogle = () => {
+      signOut(auth);
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      window.currentUser = user;
+      const authBtn = document.getElementById("auth-btn");
+      const userBadge = document.getElementById("user-badge");
+
+      if (user) {
+        if (authBtn) {
+          authBtn.textContent = "Cerrar sesión";
+          authBtn.onclick = window.logoutGoogle;
+          authBtn.className = "px-2.5 py-1 text-xs font-medium text-zinc-600 hover:text-zinc-900 border border-zinc-200 rounded transition";
+        }
+        if (userBadge) {
+          userBadge.textContent = user.displayName || user.email;
+          userBadge.classList.remove("hidden");
+        }
+        window.initCloudSync();
+      } else {
+        if (authBtn) {
+          authBtn.innerHTML = `
+            <svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.17v2.73h5.51c-.24 1.27-.99 2.35-2.09 3.07v2.54h3.38c1.98-1.82 3.12-4.51 3.12-7.58c0-.64-.06-1.25-.17-1.84z"/><path fill="currentColor" d="M12.18 21c2.83 0 5.21-.94 6.95-2.56l-3.38-2.54c-.94.63-2.14 1-3.57 1c-2.74 0-5.06-1.85-5.89-4.34H2.78v2.62C4.54 18.66 8.09 21 12.18 21z"/><path fill="currentColor" d="M6.29 12.56c-.21-.63-.33-1.3-.33-2c0-.7.12-1.37.33-2V5.94H2.78C2.07 7.36 1.67 8.94 1.67 10.56s.4 3.2 1.11 4.62l3.51-2.62z"/><path fill="currentColor" d="M12.18 4.64c1.54 0 2.92.53 4.01 1.57l3.01-3.01C17.38 1.48 15 0.5 12.18 0.5c-4.09 0-7.64 2.34-9.4 5.44l3.51 2.62c.83-2.49 3.15-4.34 5.89-4.34z"/></svg>
+            Entrar con Google
+          `;
+          authBtn.onclick = window.loginWithGoogle;
+          authBtn.className = "px-2.5 py-1 text-xs font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded transition flex items-center";
+        }
+        if (userBadge) {
+          userBadge.classList.add("hidden");
+        }
+        flashSaveIndicator("Inicia sesión para sincronizar");
+      }
+    });
   </script>
 
   <style>
@@ -298,9 +341,9 @@
         <div>
           <h1 class="text-sm font-semibold text-zinc-900 leading-none">Bullet Journal Digital</h1>
           <div class="flex items-center gap-2 mt-1">
-            <span id="save-indicator" class="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Sincronizado en la nube
+            <span id="save-indicator" class="inline-flex items-center gap-1 text-[11px] text-zinc-500 font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+              Inicia sesión para sincronizar
             </span>
             <span class="text-zinc-300">|</span>
             <span id="week-range-badge" class="text-[11px] text-zinc-500 font-medium"></span>
@@ -342,7 +385,13 @@
           onclick="window.print()"
           class="px-3 py-1.5 text-xs font-medium text-white bg-zinc-900 rounded-md hover:bg-zinc-800 transition flex items-center gap-1.5"
         >
-          <span>Imprimir / PDF</span>
+          <span>PDF</span>
+        </button>
+
+        <!-- Bloque de Autenticación con Google -->
+        <span id="user-badge" class="text-[11px] text-zinc-600 font-medium hidden"></span>
+        <button id="auth-btn" class="px-2.5 py-1 text-xs font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded transition flex items-center">
+          Entrar con Google
         </button>
       </div>
     </div>
@@ -350,7 +399,6 @@
 
   <main class="bujo-sheet">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-stretch">
-
       <!-- COLUMNA IZQUIERDA -->
       <div class="flex flex-col justify-between">
         <section class="mb-6">
@@ -420,7 +468,6 @@
           </div>
         </section>
       </div>
-
     </div>
   </main>
 
@@ -446,7 +493,6 @@
 
     let store = { pages: {} };
     let currentWeekKey = getISOWeekString(new Date());
-    let unsubscribeFirestore = null;
     let syncTimeout = null;
 
     function getISOWeekString(date) {
@@ -506,12 +552,11 @@
       return store.pages[currentWeekKey];
     }
 
-    // Sincronización en tiempo real con Firestore
     window.initCloudSync = function() {
-      if (!window.db) return;
-      const docRef = window.doc(window.db, "bullet_journal", "semanas");
+      if (!window.db || !window.currentUser) return;
+      const userDocRef = window.doc(window.db, "usuarios", window.currentUser.uid, "datos", "semanas");
 
-      window.onSnapshot(docRef, (docSnap) => {
+      window.onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const cloudData = docSnap.data();
           if (cloudData && cloudData.pages) {
@@ -523,12 +568,17 @@
     };
 
     function saveStore() {
+      if (!window.currentUser) {
+        flashSaveIndicator("Inicia sesión para sincronizar");
+        return;
+      }
+
       flashSaveIndicator("Guardando...");
       clearTimeout(syncTimeout);
       syncTimeout = setTimeout(() => {
-        if (window.db) {
-          const docRef = window.doc(window.db, "bullet_journal", "semanas");
-          window.setDoc(docRef, { pages: store.pages }, { merge: true })
+        if (window.db && window.currentUser) {
+          const userDocRef = window.doc(window.db, "usuarios", window.currentUser.uid, "datos", "semanas");
+          window.setDoc(userDocRef, { pages: store.pages }, { merge: true })
             .then(() => flashSaveIndicator("Sincronizado en la nube"))
             .catch((err) => {
               console.error(err);
